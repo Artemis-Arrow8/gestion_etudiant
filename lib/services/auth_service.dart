@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/services/auth_service.dart
-// RÔLE : Service gérant la liste des étudiants inscrits et la session active.
+// Le Service gérant la liste des étudiants inscrits et la session active.
 // =====================================================================
 
 import '../models/student.dart';
@@ -9,7 +8,7 @@ class AuthService {
   // Liste statique agissant comme une base de données locale temporaire
   static final List<Student> _registeredStudents = [
     // Un compte par défaut pré-intégré pour tester tout de suite
-    Student(
+    const Student(
       id: '1',
       name: 'Kadiatou Guindo',
       email: 'kadi@itma.ml',
@@ -51,14 +50,15 @@ class AuthService {
     return true;
   }
 
-  // Méthode pour connecter un étudiant existant
+  // Méthode pour connecter un étudiant existant de manière sécurisée
   static bool login(String email, String password) {
     try {
-      // Recherche un étudiant avec les mêmes identifiants
+      // Utilisation de .firstWhere avec un orElse pour éviter les plantages (StateError)
       final student = _registeredStudents.firstWhere(
         (s) => s.email == email && s.password == password,
+        orElse: () => throw Exception('Utilisateur non trouvé'),
       );
-      currentStudent = student; // Mémorise la session
+      currentStudent = student; // Mémorise la session active
       return true;
     } catch (e) {
       return false; // Échec : identifiants incorrects

@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/screens/register_screen.dart
-// RÔLE : Formulaire d'inscription pour créer un nouveau profil étudiant.
+//  Formulaire d'inscription pour créer un nouveau profil étudiant.
 // =====================================================================
 
 import 'package:flutter/material.dart';
@@ -22,6 +21,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _majorController = TextEditingController();
   
   String _errorMessage = '';
+
+  @override
+  void dispose() {
+    // Libération des ressources des contrôleurs
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _majorController.dispose();
+    super.dispose();
+  }
 
   // Fonction appelée lors de la soumission de l'inscription
   void _handleRegister() {
@@ -46,8 +55,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       major: major,
     );
 
-    if (success) {
-      // Si l'inscription réussit, on redirige directement vers le tableau de bord
+    if (success && mounted) {
+      // Si l'inscription réussit, on redirige vers le tableau de bord et efface l'historique
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -87,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 24),
 
             // Affichage des erreurs éventuelles
-            if (_errorMessage.isNotEmpty)
+            if (_errorMessage.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -96,7 +105,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 child: Text(_errorMessage, style: TextStyle(color: Colors.red.shade700)),
               ),
-            if (_errorMessage.isNotEmpty) const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
 
             // Champ : Nom complet
             TextField(

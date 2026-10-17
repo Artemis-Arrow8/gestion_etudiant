@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/main.dart
-// RÔLE : Point d'entrée principal de l'application Flutter.
+// Point d'entrée principal de l'application Flutter.
 // =====================================================================
 
 import 'package:flutter/material.dart';

@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/screens/login_screen.dart
-// RÔLE : Écran de connexion de l'application.
+// L'Écran de connexion de l'application.
 // =====================================================================
 
 import 'package:flutter/material.dart';
@@ -23,6 +22,14 @@ class _LoginScreenState extends State<LoginScreen> {
   // Variable pour afficher les messages d'erreur en cas de mauvais identifiants
   String _errorMessage = '';
 
+  @override
+  void dispose() {
+    // Libère la mémoire allouée aux contrôleurs lorsque l'écran est détruit
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   // Fonction appelée lors du clic sur "Se connecter"
   void _handleLogin() {
     String email = _emailController.text.trim();
@@ -39,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Appel du service de connexion
     bool success = AuthService.login(email, password);
 
-    if (success) {
+    if (success && mounted) {
       // Si la connexion réussit, on va vers le tableau de bord
       Navigator.pushReplacement(
         context,
@@ -80,8 +87,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Boîte d'affichage des erreurs
-              if (_errorMessage.isNotEmpty)
+              // Boîte d'affichage des erreurs conditionnelle
+              if (_errorMessage.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -94,7 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              if (_errorMessage.isNotEmpty) const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
 
               // Champ Email
               TextField(

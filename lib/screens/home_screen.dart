@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/screens/home_screen.dart
-// RÔLE : Tableau de bord principal de l'application.
+// Le Tableau de bord principal de l'application.
 // =====================================================================
 
 import 'package:flutter/material.dart';

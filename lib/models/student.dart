@@ -1,6 +1,5 @@
 // =====================================================================
-// FICHIER : lib/models/student.dart
-// RÔLE : Modèle représentant un étudiant avec ses informations de base.
+// ce fichier représente le modèle d'un étudiant avec ses informations de base.
 // =====================================================================
 
 class Student {
@@ -10,8 +9,8 @@ class Student {
   final String password;  // Mot de passe du compte
   final String major;     // Filière universitaire (ex: Génie Logiciel)
 
-  // Constructeur pour initialiser un objet Student
-  Student({
+  // Constructeur constant pour optimiser les performances (évite les recréations inutiles en mémoire)
+  const Student({
     required this.id,
     required this.name,
     required this.email,
@@ -30,7 +29,7 @@ class Student {
     };
   }
 
-  // Crée un objet Student à partir d'une Map de données
+  // Crée un objet Student à partir d'une Map de données avec valeurs de repli sécurisées
   factory Student.fromMap(Map<String, dynamic> map) {
     return Student(
       id: map['id'] ?? '',
