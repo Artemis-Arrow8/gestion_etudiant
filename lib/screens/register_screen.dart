@@ -1,9 +1,10 @@
 // =====================================================================
-//  Formulaire d'inscription pour créer un nouveau profil étudiant.
+// Écran d'Inscription — Enregistrement d'un nouvel étudiant
 // =====================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/app_colors.dart';
 import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -14,17 +15,17 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Contrôleurs pour récupérer les informations du formulaire d'inscription
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _majorController = TextEditingController();
   
+  bool _obscurePassword = true;
   String _errorMessage = '';
 
   @override
   void dispose() {
-    // Libération des ressources des contrôleurs
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -32,139 +33,183 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // Fonction appelée lors de la soumission de l'inscription
   void _handleRegister() {
-    String name = _nameController.text.trim();
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
-    String major = _majorController.text.trim();
+    setState(() => _errorMessage = '');
 
-    // Vérifie si tous les champs sont remplis
-    if (name.isEmpty || email.isEmpty || password.isEmpty || major.isEmpty) {
-      setState(() {
-        _errorMessage = 'Veuillez remplir tous les champs.';
-      });
-      return;
-    }
-
-    // Enregistre l'étudiant via le service d'authentification
-    bool success = AuthService.register(
-      name: name,
-      email: email,
-      password: password,
-      major: major,
-    );
-
-    if (success && mounted) {
-      // Si l'inscription réussit, on redirige vers le tableau de bord et efface l'historique
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
+    // Vérification de la validité de l'ensemble du formulaire
+    if (_formKey.currentState!.validate()) {
+      bool success = AuthService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        major: _majorController.text.trim(),
       );
-    } else {
-      setState(() {
-        _errorMessage = 'Cet email est déjà associé à un autre compte.';
-      });
+
+      if (success && mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      } else {
+        setState(() => _errorMessage = 'Cet email est déjà utilisé.');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Inscription Étudiant'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.textMain),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Créer votre compte',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Remplissez vos informations pour accéder à l\'application.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-
-            // Affichage des erreurs éventuelles
-            if (_errorMessage.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Créer un compte',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMain,
+                  ),
                 ),
-                child: Text(_errorMessage, style: TextStyle(color: Colors.red.shade700)),
-              ),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 6),
+                const Text(
+                  'Rejoignez la plateforme étudiante',
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 24),
 
-            // Champ : Nom complet
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Nom complet',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 16),
+                // Affichage conditionnel des erreurs d'authentification
+                if (_errorMessage.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.errorBackground,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _errorMessage,
+                      style: const TextStyle(color: AppColors.textMain),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
-            // Champ : Email
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'Adresse email',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.email_outlined),
-              ),
-            ),
-            const SizedBox(height: 16),
+                // Champ Nom complet
+                TextFormField(
+                  controller: _nameController,
+                  style: const TextStyle(color: AppColors.textMain),
+                  decoration: InputDecoration(
+                    labelText: 'Nom et prénom',
+                    labelStyle: const TextStyle(color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.person_outline, color: AppColors.textMuted),
+                  ),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Veuillez saisir votre nom' : null,
+                ),
+                const SizedBox(height: 16),
 
-            // Champ : Filière
-            TextField(
-              controller: _majorController,
-              decoration: InputDecoration(
-                labelText: 'Filière (ex: Génie Logiciel)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.school_outlined),
-              ),
-            ),
-            const SizedBox(height: 16),
+                // Champ Email institutionnel
+                TextFormField(
+                  controller: _emailController,
+                  style: const TextStyle(color: AppColors.textMain),
+                  decoration: InputDecoration(
+                    labelText: 'Email institutionnel',
+                    labelStyle: const TextStyle(color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textMuted),
+                  ),
+                  validator: (v) => (v == null || !v.contains('@')) ? 'Email invalide' : null,
+                ),
+                const SizedBox(height: 16),
 
-            // Champ : Mot de passe
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.lock_outline),
-              ),
-            ),
-            const SizedBox(height: 24),
+                // Champ Filière
+                TextFormField(
+                  controller: _majorController,
+                  style: const TextStyle(color: AppColors.textMain),
+                  decoration: InputDecoration(
+                    labelText: 'Filière (ex: Génie Logiciel GL3)',
+                    labelStyle: const TextStyle(color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.school_outlined, color: AppColors.textMuted),
+                  ),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Veuillez saisir votre filière' : null,
+                ),
+                const SizedBox(height: 16),
 
-            // Bouton de validation
-            ElevatedButton(
-              onPressed: _handleRegister,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text("S'inscrire", style: TextStyle(fontSize: 16)),
+                // Champ Mot de passe sécurisé 
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  style: const TextStyle(color: AppColors.textMain),
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe (8 car., 1 maj., 1 chiffre)',
+                    labelStyle: const TextStyle(color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textMuted),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: AppColors.textMuted,
+                      ),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) {
+                      return 'Veuillez saisir un mot de passe';
+                    }
+                    if (v.length < 8) {
+                      return 'Minimum 8 caractères requis';
+                    }
+                    if (!v.contains(RegExp(r'[A-Z]'))) {
+                      return 'Doit contenir au moins une majuscule';
+                    }
+                    if (!v.contains(RegExp(r'[0-9]'))) {
+                      return 'Doit contenir au moins un chiffre';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 28),
+
+                // Bouton d'inscription
+                ElevatedButton(
+                  onPressed: _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLavender,
+                    foregroundColor: AppColors.textMain,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text(
+                    "S'inscrire",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

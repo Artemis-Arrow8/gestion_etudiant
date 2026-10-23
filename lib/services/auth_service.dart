@@ -1,71 +1,53 @@
 // =====================================================================
-// Le Service gérant la liste des étudiants inscrits et la session active.
+// Service d'authentification 
 // =====================================================================
 
 import '../models/student.dart';
 
 class AuthService {
-  // Liste statique agissant comme une base de données locale temporaire
-  static final List<Student> _registeredStudents = [
-    // Un compte par défaut pré-intégré pour tester tout de suite
+  static final List<Student> _students = [
     const Student(
-      id: '1',
-      name: 'Kadiatou Guindo',
-      email: 'kadi@itma.ml',
-      password: 'password123',
-      major: 'Génie Logiciel',
+      id: 'ITMA-2026-001',
+      name: 'Kadiatou Hélène Guindo',
+      email: 'kadiatou@itma.ml',
+      major: 'Génie Logiciel (GL3)',
     ),
   ];
 
-  // Stocke l'étudiant actuellement connecté (null si personne n'est connecté)
-  static Student? currentStudent;
+  static Student? currentStudent = _students.first;
 
-  // Méthode pour inscrire un nouvel étudiant
+  static bool login(String email, String password) {
+    try {
+      final student = _students.firstWhere((s) => s.email == email);
+      currentStudent = student;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static bool register({
     required String name,
     required String email,
     required String password,
     required String major,
   }) {
-    // Vérifie si l'email existe déjà dans la liste
-    bool emailExists = _registeredStudents.any((student) => student.email == email);
-    if (emailExists) {
-      return false; // Échec : l'email est déjà pris
+    if (_students.any((s) => s.email == email)) {
+      return false;
     }
 
-    // Crée un nouvel étudiant avec un ID unique basé sur l'heure actuelle
     final newStudent = Student(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: 'ITMA-2026-00${_students.length + 1}',
       name: name,
       email: email,
-      password: password,
       major: major,
     );
 
-    // Ajoute l'étudiant à la liste
-    _registeredStudents.add(newStudent);
-    
-    // Connecte automatiquement l'étudiant après son inscription
+    _students.add(newStudent);
     currentStudent = newStudent;
     return true;
   }
 
-  // Méthode pour connecter un étudiant existant de manière sécurisée
-  static bool login(String email, String password) {
-    try {
-      // Utilisation de .firstWhere avec un orElse pour éviter les plantages (StateError)
-      final student = _registeredStudents.firstWhere(
-        (s) => s.email == email && s.password == password,
-        orElse: () => throw Exception('Utilisateur non trouvé'),
-      );
-      currentStudent = student; // Mémorise la session active
-      return true;
-    } catch (e) {
-      return false; // Échec : identifiants incorrects
-    }
-  }
-
-  // Méthode pour déconnecter l'utilisateur
   static void logout() {
     currentStudent = null;
   }
