@@ -1,15 +1,17 @@
 // =====================================================================
-// Écran Principal avec Navigation Bar et Tableau de bord
+// Écran Principal avec Navigation Bar et Tableau de bord 
 // =====================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../repositories/course_repository.dart';
+import '../utils/app_colors.dart';
 import 'login_screen.dart';
 import 'courses_screen.dart';
 import 'profile_screen.dart';
 import 'grades_screen.dart';
-import 'schedule_screen.dart';       // Import de l'écran Emploi du temps
-import 'notifications_screen.dart'; // Import de l'écran Notifications
+import 'schedule_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,10 +23,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Liste des écrans accessibles via la barre de navigation principale
   final List<Widget> _screens = [
     const HomeDashboardContent(),
-    const CoursesScreen(),
+    CoursesScreen(repository: CourseRepository()),
     const ProfileScreen(),
   ];
 
@@ -35,10 +36,24 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        indicatorColor: AppColors.softLilac.withOpacity(0.5),
+        backgroundColor: AppColors.surface,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Accueil'),
-          NavigationDestination(icon: Icon(Icons.book_outlined), selectedIcon: Icon(Icons.book), label: 'Cours'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined, color: AppColors.darkPlum),
+            selectedIcon: Icon(Icons.home, color: AppColors.darkPlum),
+            label: 'Accueil',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book_outlined, color: AppColors.darkPlum),
+            selectedIcon: Icon(Icons.book, color: AppColors.darkPlum),
+            label: 'Cours',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline, color: AppColors.darkPlum),
+            selectedIcon: Icon(Icons.person, color: AppColors.darkPlum),
+            label: 'Profil',
+          ),
         ],
       ),
     );
@@ -53,18 +68,21 @@ class HomeDashboardContent extends StatelessWidget {
     final student = AuthService.currentStudent;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Tableau de bord'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        title: const Text('Tableau de bord', style: TextStyle(color: AppColors.darkPlum, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            icon: const Icon(Icons.logout, color: AppColors.orchidPurple),
+            tooltip: 'Déconnexion',
             onPressed: () {
               AuthService.logout();
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+              Navigator.pushReplacement(
+                context, 
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
             },
           )
         ],
@@ -74,28 +92,44 @@ class HomeDashboardContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Carte de bienvenue de l'étudiant connecté
+            // Carte de bienvenue aux tons Prune & Lilas
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.teal.shade50,
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.darkPlum.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: Colors.teal,
-                    child: Text(student?.name[0] ?? 'E', style: const TextStyle(color: Colors.white, fontSize: 24)),
+                    backgroundColor: AppColors.orchidPurple,
+                    child: Text(
+                      student?.name.isNotEmpty == true ? student!.name[0] : 'E', 
+                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Bonjour, ${student?.name ?? "Étudiant"} !', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Bonjour, ${student?.name ?? "Étudiant"} !', 
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
+                        ),
                         const SizedBox(height: 4),
-                        Text('Filière : ${student?.major ?? ""}', style: TextStyle(color: Colors.teal.shade800)),
+                        Text(
+                          'Filière : ${student?.major ?? ""}', 
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        ),
                       ],
                     ),
                   ),
@@ -103,10 +137,13 @@ class HomeDashboardContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Espace Pédagogique', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            const Text(
+              'Espace Pédagogique', 
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
+            ),
+            const SizedBox(height: 14),
             
-            // Grille des raccourcis pédagogiques
+            // Grille des cartes fonctionnelles
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -115,22 +152,56 @@ class HomeDashboardContent extends StatelessWidget {
               mainAxisSpacing: 16,
               childAspectRatio: 1.3,
               children: [
-                // 1. Bouton Mes Cours
-                _buildCard(Icons.book_outlined, 'Mes Cours', Colors.blue.shade50, Colors.blue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CoursesScreen()));
-                }),
-                // 2. Bouton Mes Notes
-                _buildCard(Icons.assessment_outlined, 'Mes Notes', Colors.orange.shade50, Colors.orange, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const GradesScreen()));
-                }),
-                // 3. Bouton Emploi du temps (Corrigé avec la navigation)
-                _buildCard(Icons.schedule_outlined, 'Emploi du temps', Colors.purple.shade50, Colors.purple, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ScheduleScreen()));
-                }),
-                // 4. Bouton Notifications (Corrigé avec la navigation)
-                _buildCard(Icons.notifications_outlined, 'Notifications', Colors.green.shade50, Colors.green, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                }),
+                _buildCard(
+                  Icons.book_outlined, 
+                  'Mes Cours', 
+                  AppColors.surface, 
+                  AppColors.orchidPurple, 
+                  () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(
+                        builder: (context) => CoursesScreen(repository: CourseRepository()),
+                      ),
+                    );
+                  },
+                ),
+                _buildCard(
+                  Icons.assessment_outlined, 
+                  'Mes Notes', 
+                  AppColors.surface, 
+                  AppColors.darkPlum, 
+                  () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => const GradesScreen()),
+                    );
+                  },
+                ),
+                _buildCard(
+                  Icons.schedule_outlined, 
+                  'Emploi du temps', 
+                  AppColors.surface, 
+                  AppColors.softLilac, 
+                  () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => const ScheduleScreen()),
+                    );
+                  },
+                ),
+                _buildCard(
+                  Icons.notifications_outlined, 
+                  'Notifications', 
+                  AppColors.surface, 
+                  AppColors.orchidPurple, 
+                  () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                    );
+                  },
+                ),
               ],
             ),
           ],
@@ -139,21 +210,34 @@ class HomeDashboardContent extends StatelessWidget {
     );
   }
 
-  // Widget utilitaire pour construire les cartes de la grille
-  Widget _buildCard(IconData icon, String title, Color color, Color iconColor, VoidCallback onTap) {
+  Widget _buildCard(IconData icon, String title, Color bgColor, Color iconColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: bgColor, 
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.softLilac.withOpacity(0.3), width: 1),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: iconColor),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 28, color: iconColor),
+            ),
             const Spacer(),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              title, 
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
+            ),
           ],
         ),
       ),

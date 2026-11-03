@@ -1,5 +1,5 @@
 // =====================================================================
-// Écran des Cours — Consultation de la liste des modules
+// Écran des Cours — Gestion des états via FutureBuilder
 // =====================================================================
 
 import 'package:flutter/material.dart';
@@ -8,36 +8,26 @@ import '../repositories/course_repository.dart';
 import '../utils/app_colors.dart';
 
 class CoursesScreen extends StatefulWidget {
-  const CoursesScreen({super.key});
+  const CoursesScreen({super.key, required this.repository});
+
+  final CourseRepository repository;
 
   @override
   State<CoursesScreen> createState() => _CoursesScreenState();
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
-  // Instance du repository pour charger les cours
-  final CourseRepository _courseRepository = CourseRepository();
-
-  // Liste locale des cours affichés à l'écran
-  List<Course> _courses = [];
-
-  // État d'affichage du chargement (loader)
-  bool _isLoading = true;
+  late Future<List<Course>> _futureCourses;
 
   @override
   void initState() {
     super.initState();
-    // Chargement automatique des données dès l'initialisation de l'écran
-    _loadCourses();
+    _futureCourses = widget.repository.getCourses();
   }
 
-  /// Méthode asynchrone pour récupérer les cours depuis le repository
-  Future<void> _loadCourses() async {
-    setState(() => _isLoading = true);
-    final fetchedCourses = await _courseRepository.getCourses();
+  void _retry() {
     setState(() {
-      _courses = fetchedCourses;
-      _isLoading = false;
+      _futureCourses = widget.repository.getCourses();
     });
   }
 
@@ -46,87 +36,112 @@ class _CoursesScreenState extends State<CoursesScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mes Cours', style: TextStyle(color: AppColors.textMain)),
+        title: const Text('Mes Cours', style: TextStyle(color: AppColors.darkPlum)),
         backgroundColor: AppColors.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textMain),
+        iconTheme: const IconThemeData(color: AppColors.darkPlum),
       ),
-      // 1. Affichage de l'indicateur de chargement si les données arrivent
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.textMain),
-            )
-          // 2. Gestion de l'affichage quand la liste est vide
-          : _courses.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Aucun cours disponible.',
-                    style: TextStyle(color: AppColors.textMuted),
-                  ),
-                )
-              // 3. Construction dynamique de la liste avec ListView.builder
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _courses.length,
-                  itemBuilder: (context, index) {
-                    final course = _courses[index];
-                    return Card(
-                      color: AppColors.surface,
-                      elevation: 0,
-                      margin: const EdgeInsets.only(bottom: 12.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+      body: FutureBuilder<List<Course>>(
+        future: _futureCourses,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.orchidPurple),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Impossible de charger les données.',
+                      style: TextStyle(color: AppColors.darkPlum, fontSize: 16, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _retry,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orchidPurple,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        // Icône du cours dans une bulle pastel
-                        leading: CircleAvatar(
-                          backgroundColor:
-                              AppColors.primaryLavender.withOpacity(0.6),
-                          child: const Icon(Icons.book, color: AppColors.textMain),
-                        ),
-                        // Intitulé du cours
-                        title: Text(
-                          course.title,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textMain),
-                        ),
-                        // Détails (Code et Enseignant)
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            'Code : ${course.code} • ${course.instructor}',
-                            style: const TextStyle(
-                                color: AppColors.textMuted, fontSize: 13),
-                          ),
-                        ),
-                        // Bouton d'action "Détails"
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Consultation du module : ${course.title}'),
-                                backgroundColor: AppColors.textMain,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                AppColors.primaryPink.withOpacity(0.4),
-                            foregroundColor: AppColors.textMain,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Détails'),
-                        ),
-                      ),
-                    );
-                  },
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
                 ),
+              ),
+            );
+          }
+
+          final courses = snapshot.data ?? [];
+
+          if (courses.isEmpty) {
+            return const Center(
+              child: Text(
+                'Aucun cours disponible.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: courses.length,
+            itemBuilder: (context, index) {
+              final course = courses[index];
+              return Card(
+                color: AppColors.surface,
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 12.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.softLilac.withOpacity(0.5),
+                    child: const Icon(Icons.book, color: AppColors.darkPlum),
+                  ),
+                  title: Text(
+                    course.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkPlum),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      'Code : ${course.code} • ${course.instructor}',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    ),
+                  ),
+                  trailing: ElevatedButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Consultation du module : ${course.title}'),
+                          backgroundColor: AppColors.darkPlum,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.softLilac.withOpacity(0.4),
+                      foregroundColor: AppColors.darkPlum,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Détails'),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

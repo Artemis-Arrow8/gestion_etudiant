@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'utils/app_colors.dart';
 
 void main() {
   runApp(const GestionEtudiantsApp());
@@ -16,11 +17,17 @@ class GestionEtudiantsApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Gestion Étudiants',
-      debugShowCheckedModeBanner: false, // Retire la bannière de debug en haut à droite
-      // Configuration d'un thème épuré avec Material 3
+      debugShowCheckedModeBanner: false, 
+      
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.orchidPurple,
+          primary: AppColors.orchidPurple,
+          surface: AppColors.surface,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+        fontFamily: 'Roboto', // Ou la police par défaut
       ),
       // L'application démarre directement sur l'écran de connexion
       home: const LoginScreen(),

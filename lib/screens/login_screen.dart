@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
 import 'home_screen.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,18 +61,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Icône avec un fond pastel rond
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryPink.withOpacity(0.4),
+                        color: AppColors.softLilac.withOpacity(0.4),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.school_outlined,
                         size: 50,
-                        color: AppColors.textMain,
+                        color: AppColors.darkPlum,
                       ),
                     ),
                   ),
@@ -84,18 +82,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textMain,
+                      color: AppColors.darkPlum,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Accédez à votre espace pédagogique',
+                    'Accédez à votre espace pédagogique sécurisé',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 32),
 
-                  // Message d'erreur pastel
                   if (_errorMessage.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -105,17 +102,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Text(
                         _errorMessage,
-                        style: const TextStyle(color: AppColors.textMain),
+                        style: const TextStyle(color: AppColors.darkPlum),
                         textAlign: TextAlign.center,
                       ),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // Champ Email
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(color: AppColors.textMain),
+                    style: const TextStyle(color: AppColors.darkPlum),
                     decoration: InputDecoration(
                       labelText: 'Email institutionnel',
                       labelStyle: const TextStyle(color: AppColors.textMuted),
@@ -131,11 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Champ Mot de passe
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: AppColors.textMain),
+                    style: const TextStyle(color: AppColors.darkPlum),
                     decoration: InputDecoration(
                       labelText: 'Mot de passe',
                       labelStyle: const TextStyle(color: AppColors.textMuted),
@@ -158,12 +153,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Bouton de connexion pastel
                   ElevatedButton(
                     onPressed: _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryPink,
-                      foregroundColor: AppColors.textMain,
+                      backgroundColor: AppColors.orchidPurple,
+                      foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -174,28 +168,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Se connecter',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Lien vers l'inscription
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Pas de compte ? ', style: TextStyle(color: AppColors.textMuted)),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                        ),
-                        child: const Text(
-                          "S'inscrire",
-                          style: TextStyle(
-                            color: AppColors.textMain,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

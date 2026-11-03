@@ -28,18 +28,18 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   // Liste initiale des horaires de cours
-  List<ScheduleItem> _schedule = [
-    const ScheduleItem(day: 'Lundi', time: '08:00 - 12:00', course: 'Développement mobile avancé', room: 'Labo 3'),
-    const ScheduleItem(day: 'Mardi', time: '14:00 - 17:00', course: 'Génie logiciel et UML', room: 'Amphi B'),
-    const ScheduleItem(day: 'Mercredi', time: '09:00 - 12:00', course: 'Bases de données relationnelles', room: 'Labo 1'),
-    const ScheduleItem(day: 'Jeudi', time: '15:00 - 18:00', course: 'Réseaux informatiques', room: 'Salle 12'),
+  final List<ScheduleItem> _schedule = const [
+    ScheduleItem(day: 'Lundi', time: '08:00 - 12:00', course: 'Développement mobile avancé', room: 'Labo 3'),
+    ScheduleItem(day: 'Mardi', time: '14:00 - 17:00', course: 'Génie logiciel et UML', room: 'Amphi B'),
+    ScheduleItem(day: 'Mercredi', time: '09:00 - 12:00', course: 'Bases de données relationnelles', room: 'Labo 1'),
+    ScheduleItem(day: 'Jeudi', time: '15:00 - 18:00', course: 'Réseaux informatiques', room: 'Salle 12'),
   ];
 
   /// Méthode simulant le rafraîchissement des données (ex: appel réseau futur)
   Future<void> _handleRefresh() async {
     await Future.delayed(const Duration(seconds: 1)); // Simulation d'un délai réseau
     setState(() {
-      // On pourrait ici recharger ou trier les données de l'emploi du temps
+      // Rechargement ou tri optionnel des données
     });
   }
 
@@ -73,7 +73,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 leading: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLavender.withOpacity(0.5),
+                    color: AppColors.softLilac.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(

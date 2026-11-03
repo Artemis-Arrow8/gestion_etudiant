@@ -1,10 +1,11 @@
 // =====================================================================
-// Service d'authentification 
+// Service d'authentification — Gestion des comptes institutionnels
 // =====================================================================
 
 import '../models/student.dart';
 
 class AuthService {
+  // Liste des étudiants gérée par l'administration de l'établissement
   static final List<Student> _students = [
     const Student(
       id: 'ITMA-2026-001',
@@ -16,6 +17,7 @@ class AuthService {
 
   static Student? currentStudent = _students.first;
 
+  /// Vérifie les identifiants de l'étudiant dans la base institutionnelle
   static bool login(String email, String password) {
     try {
       final student = _students.firstWhere((s) => s.email == email);
@@ -26,28 +28,7 @@ class AuthService {
     }
   }
 
-  static bool register({
-    required String name,
-    required String email,
-    required String password,
-    required String major,
-  }) {
-    if (_students.any((s) => s.email == email)) {
-      return false;
-    }
-
-    final newStudent = Student(
-      id: 'ITMA-2026-00${_students.length + 1}',
-      name: name,
-      email: email,
-      major: major,
-    );
-
-    _students.add(newStudent);
-    currentStudent = newStudent;
-    return true;
-  }
-
+  /// Déconnexion de l'étudiant
   static void logout() {
     currentStudent = null;
   }
