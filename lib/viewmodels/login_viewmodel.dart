@@ -1,41 +1,64 @@
 // =====================================================================
-// ViewModel — Authentification 
+// ViewModel — Écran de connexion
 // =====================================================================
 
-import 'package:flutter/material.dart';
-import '../repositories/auth_repository.dart';
-import '../models/student.dart';
+import 'package:flutter/foundation.dart';
 
-class LoginViewModel extends ChangeNotifier {
-  final AuthRepository _authRepository = AuthRepository();
+import '../repositories/auth_repository.dart';
+import 'base_viewmodel.dart';
+
+class LoginViewModel extends BaseViewModel {
+  /// Le repository est fourni par l'écran (injection de dépendance).
+  LoginViewModel(this._authRepository);
+
+  final AuthRepository _authRepository;
 
   bool _isLoading = false;
   String? _errorMessage;
-  Student? _currentStudent;
+  bool _rememberMe = true;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  Student? get currentStudent => _currentStudent;
+  bool get rememberMe => _rememberMe;
 
+  /// Coche / décoche "Se souvenir de moi".
+  void setRememberMe(bool value) {
+    _rememberMe = value;
+    notifyListeners();
+  }
+
+  /// Tente la connexion. Renvoie `true` si elle a réussi.
+  /// (Le formulaire a déjà été validé par l'écran avant cet appel.)
   Future<bool> login(String email, String password) async {
+    // Évite de lancer deux connexions en même temps (double clic)
+    if (_isLoading) return false;
+
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    notifyListeners(); // L'écran affiche l'indicateur de chargement
 
-    // Petit délai simulé pour l'effet de chargement fluide
-    await Future.delayed(const Duration(milliseconds: 400));
+    try {
+      final student = await _authRepository.login(
+        email: email.trim(),
+        password: password,
+        rememberMe: _rememberMe,
+      );
 
-    final student = _authRepository.login(email, password);
-    _isLoading = false;
-
-    if (student != null) {
-      _currentStudent = student;
-      notifyListeners();
+      if (student == null) {
+        // Échec d'authentification : message volontairement général
+        _errorMessage = 'Email ou mot de passe incorrect.';
+        return false;
+      }
       return true;
-    } else {
-      _errorMessage = 'Identifiants incorrects.';
-      notifyListeners();
+    } catch (e) {
+      // Erreur inattendue : détail technique dans la console seulement
+      debugPrint('Erreur de connexion : $e');
+      _errorMessage = 'Une erreur est survenue. Veuillez réessayer.';
       return false;
+    } finally {
+      // Exécuté dans tous les cas (succès, échec ou erreur)
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

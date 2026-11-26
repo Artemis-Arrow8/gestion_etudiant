@@ -1,30 +1,35 @@
 // =====================================================================
-// Palette de Couleurs 
+// Palette de couleurs de l'application
 // =====================================================================
 
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Couleurs principales issues de ta palette
-  static const Color darkPlum = Color(0xFF4D3A4D);       // Prune foncé (#4D3A4D) - Titres et texte principal
-  static const Color orchidPurple = Color(0xFFBE5CA9);   // Violet orchidée (#BE5CA9) - Boutons et actions principales
-  static const Color softLilac = Color(0xFFD59CC5);      // Lilas doux (#D59CC5) - Éléments secondaires et puces
-  static const Color paleBackground = Color(0xFFEADADA); // Fond très pâle (#EADADA) - Arrière-plan global
-  
-  // Rétrocompatibilité pour les écrans existants (évite les erreurs sur accentSage et primaryPink)
-  static const Color accentSage = Color(0xFFD4E0D2);     // Vert sauge apaisant
-  static const Color primaryPink = Color(0xFFD59CC5);    // Équivalent poudré pour les boutons/fonds
-  
-  // Fonds et Surfaces pour un design moderne et épuré
-  static const Color background = Color(0xFFEADADA);     // Fond général de l'application
-  static const Color surface = Color(0xFFFFFFFF);         // Blanc pur pour les cartes (Cards) et conteneurs
-  
-  // Typographie (Contrastes optimisés avec le prune foncé)
-  static const Color textMain = Color(0xFF4D3A4D);        // Texte principal (Prune foncé)
-  static const Color textMuted = Color(0xFF7A6A7A);       // Gris-mauve atténué pour les sous-titres
-  
-  // Actions, Alertes et États sémantiques
-  static const Color buttonBackground = Color(0xFFBE5CA9); // Fond des boutons principaux (Orchidée)
-  static const Color errorBackground = Color(0xFFFFD1D1);  // Rose pastel pour les erreurs
-  static const Color successBackground = Color(0xFFD4E0D2); // Vert pastel pour les validations
+  // Constructeur privé : cette classe ne contient que des constantes,
+  // on ne doit donc jamais en créer d'instance.
+  AppColors._();
+
+  // --- Couleurs principales de la charte graphique ---
+  static const Color primary = Color(0xFF111111); // Noir : boutons, actions, avatar
+  static const Color accent = Color(0xFFB08D2E); // Or ancien : icônes et accents
+  static const Color primaryLight = Color(0xFFD4AF37); // Or clair : indicateurs, contours
+  static const Color primarySoft = Color(0xFFFBF6E6); // Crème doré : carte de moyenne
+
+  // --- Fonds, surfaces et bordures ---
+  static const Color background = Color(0xFFFAFAFA); // Blanc cassé : fond des écrans
+  static const Color surface = Color(0xFFFFFFFF); // Blanc : cartes et conteneurs
+  static const Color border = Color(0xFFE8E4D8); // Gris doré très pâle : bordures fines
+
+  // --- Texte ---
+  static const Color textMain = Color(0xFF111111); // Noir : titres et texte
+  static const Color textMuted = Color(0xFF6B6B6B); // Gris : textes secondaires
+
+  // --- Couleurs de statut (succès / erreur / avertissement / info) ---
+  static const Color successBackground = Color(0xFFF6F0DC); // Crème or
+  static const Color successText = Color(0xFF6E5410); // Bronze
+  static const Color errorBackground = Color(0xFFFBEAEA); // Rouge très pâle
+  static const Color errorText = Color(0xFFA32020); // Rouge foncé
+  static const Color warningBackground = Color(0xFFFFF4E0); // Ambre pâle
+  static const Color warningText = Color(0xFF8A5300); // Ambre foncé
+  static const Color infoBackground = Color(0xFFF4F4F4); // Gris très clair
 }

@@ -1,108 +1,150 @@
 // =====================================================================
-// Écran des Notes 
+// Écran des notes — Moyenne générale et liste des notes
 // =====================================================================
 
 import 'package:flutter/material.dart';
-import '../models/Grade.dart';
+
+import '../models/grade.dart';
+import '../repositories/grade_repository.dart';
 import '../utils/app_colors.dart';
+import '../utils/formatters.dart';
+import '../viewmodels/grades_viewmodel.dart';
+import '../viewmodels/view_status.dart';
+import '../widgets/empty_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/responsive_body.dart';
 
-class GradesScreen extends StatelessWidget {
-  const GradesScreen({super.key});
+class GradesScreen extends StatefulWidget {
+  const GradesScreen({super.key, this.repository});
 
-  final List<Grade> grades = const [
-    Grade(courseName: 'Développement mobile avancé', score: 16.5, coefficient: 3.0),
-    Grade(courseName: 'Génie logiciel et UML', score: 14.0, coefficient: 2.0),
-    Grade(courseName: 'Bases de données relationnelles', score: 15.0, coefficient: 3.0),
-  ];
+  final GradeRepository? repository;
 
-  double _calculateGPA() {
-    if (grades.isEmpty) return 0.0;
-    double points = 0, coefs = 0;
-    for (var g in grades) {
-      points += g.score * g.coefficient;
-      coefs += g.coefficient;
-    }
-    return coefs > 0 ? points / coefs : 0.0;
+  @override
+  State<GradesScreen> createState() => _GradesScreenState();
+}
+
+class _GradesScreenState extends State<GradesScreen> {
+  late final GradesViewModel _viewModel =
+      GradesViewModel(repository: widget.repository);
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel.loadGrades();
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final gpa = _calculateGPA();
-
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Mes Notes', style: TextStyle(color: AppColors.textMain)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textMain),
+      appBar: AppBar(title: const Text('Mes notes')),
+      body: ResponsiveBody(
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) => _buildContent(),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildContent() {
+    switch (_viewModel.status) {
+      case ViewStatus.initial:
+      case ViewStatus.loading:
+        return const LoadingView(message: 'Chargement des notes...');
+      case ViewStatus.error:
+        return ErrorView(
+          message: _viewModel.errorMessage ?? 'Une erreur est survenue.',
+          onRetry: _viewModel.loadGrades,
+        );
+      case ViewStatus.empty:
+        return const EmptyView(message: 'Aucune note publiée pour le moment.');
+      case ViewStatus.success:
+        return ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.accentSage.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Moyenne Générale Pondérée',
-                    style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${gpa.toStringAsFixed(2)} / 20',
-                    style: const TextStyle(
-                      color: AppColors.textMain,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Détails des Évaluations',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain),
-            ),
-            const SizedBox(height: 12),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: grades.length,
-              itemBuilder: (context, index) {
-                final grade = grades[index];
-                return Card(
-                  color: AppColors.surface,
-                  elevation: 0,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    title: Text(grade.courseName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain)),
-                    subtitle: Text('Coefficient : ${grade.coefficient}', style: const TextStyle(color: AppColors.textMuted)),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryPink.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${grade.score} / 20',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            _buildAverageCard(),
+            const SizedBox(height: 20),
+            for (final grade in _viewModel.grades) _GradeCard(grade: grade),
           ],
+        );
+    }
+  }
+
+  /// Carte de synthèse : moyenne générale pondérée.
+  Widget _buildAverageCard() {
+    final average = _viewModel.weightedAverage;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Moyenne générale pondérée',
+            style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            average == null ? '—' : '${Formatters.decimal(average)} / 20',
+            style: const TextStyle(color: AppColors.textMain, fontSize: 32, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Coefficient de chaque cours = nombre de crédits',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Carte d'une note (badge doré si validée, rouge sinon).
+class _GradeCard extends StatelessWidget {
+  const _GradeCard({required this.grade});
+
+  final Grade grade;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        title: Text(
+          grade.courseName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain),
+        ),
+        subtitle: Text(
+          '${grade.courseCode} · coefficient ${grade.coefficient}',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: grade.isValidated ? AppColors.successBackground : AppColors.errorBackground,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${Formatters.decimal(grade.score)} / 20',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: grade.isValidated ? AppColors.successText : AppColors.errorText,
+            ),
+          ),
         ),
       ),
     );

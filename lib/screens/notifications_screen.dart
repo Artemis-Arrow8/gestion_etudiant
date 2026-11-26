@@ -1,132 +1,116 @@
 // =====================================================================
-// Écran des Notifications — Propulsé par l'API
+// Écran des notifications — Données issues d'une API REST
 // =====================================================================
 
 import 'package:flutter/material.dart';
-import '../services/notification_api_service.dart';
+
+import '../models/notification.dart';
+import '../repositories/notification_repository.dart';
 import '../utils/app_colors.dart';
+import '../viewmodels/notifications_viewmodel.dart';
+import '../viewmodels/view_status.dart';
+import '../widgets/empty_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/responsive_body.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, this.repository});
+
+  final NotificationRepository? repository;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late Future<List<NotificationModel>> _futureNotifications;
-  final NotificationApiService _apiService = NotificationApiService();
+  late final NotificationsViewModel _viewModel =
+      NotificationsViewModel(repository: widget.repository);
 
   @override
   void initState() {
     super.initState();
-    _futureNotifications = _apiService.fetchNotifications();
+    _viewModel.loadNotifications();
   }
 
-  void _retry() {
-    setState(() {
-      _futureNotifications = _apiService.fetchNotifications();
-    });
+  @override
+  void dispose() {
+    _viewModel.dispose(); // Ferme aussi le client HTTP
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Notifications & Annonces', style: TextStyle(color: AppColors.darkPlum)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.darkPlum),
+      appBar: AppBar(title: const Text('Notifications')),
+      body: ResponsiveBody(
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) => _buildContent(),
+        ),
       ),
-      body: FutureBuilder<List<NotificationModel>>(
-        future: _futureNotifications,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.orchidPurple),
-            );
-          }
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Impossible de charger les notifications.',
-                      style: TextStyle(color: AppColors.darkPlum, fontSize: 16, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _retry,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orchidPurple,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
+  Widget _buildContent() {
+    switch (_viewModel.status) {
+      case ViewStatus.initial:
+      case ViewStatus.loading:
+        return const LoadingView(message: 'Chargement des notifications...');
+      case ViewStatus.error:
+        return ErrorView(
+          message: _viewModel.errorMessage ?? 'Une erreur est survenue.',
+          onRetry: _viewModel.loadNotifications,
+        );
+      case ViewStatus.empty:
+        return const EmptyView(
+          icon: Icons.notifications_none,
+          message: 'Aucune notification pour le moment.',
+        );
+      case ViewStatus.success:
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _viewModel.notifications.length,
+          itemBuilder: (context, index) =>
+              _NotificationCard(notification: _viewModel.notifications[index]),
+        );
+    }
+  }
+}
 
-          final notifications = snapshot.data ?? [];
+/// Carte d'une notification.
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.notification});
 
-          if (notifications.isEmpty) {
-            return const Center(
-              child: Text(
-                'Aucune notification pour le moment.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 16),
-              ),
-            );
-          }
+  final NotificationModel notification;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notif = notifications[index];
-              return Card(
-                color: AppColors.surface,
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.notifications_active_outlined, color: AppColors.orchidPurple, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              notif.title,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.darkPlum),
-                            ),
-                          ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    notif.message,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                  ),
-                    ],
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.notifications_active_outlined, color: AppColors.accent, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    notification.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textMain),
                   ),
                 ),
-              );
-            },
-          );
-        },
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              notification.message,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }

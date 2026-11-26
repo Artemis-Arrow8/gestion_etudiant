@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Accès à internet : nécessaire pour l'API REST des notifications.
+         (Sans cette ligne, la version Release ne peut pas accéder au réseau.) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Accès à la position : vérification de présence sur le campus.
+         La permission est demandée à l'utilisateur uniquement au moment
+         où il utilise la fonctionnalité. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
     <application
-        android:label="gestion_etudiant"
+        android:label="Gestion Étudiants"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

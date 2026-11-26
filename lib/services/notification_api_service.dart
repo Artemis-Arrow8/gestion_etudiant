@@ -1,53 +1,44 @@
 // =====================================================================
-// Service API pour les Notifications et Annonces de l'Université
+// Service HTTP — Récupération des notifications depuis l'API JSONPlaceholder
 // =====================================================================
 
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
-class NotificationModel {
-  final int id;
-  final String title;
-  final String message;
-
-  const NotificationModel({
-    required this.id,
-    required this.title,
-    required this.message,
-  });
-
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    return NotificationModel(
-      id: json['id'] as int,
-      title: json['title'] as String? ?? 'Annonce officielle',
-      message: json['body'] as String? ?? 'Aucun détail fourni.',
-    );
-  }
-}
+import '../models/notification.dart';
+import '../utils/app_constants.dart';
+import 'http_client_factory.dart';
 
 class NotificationApiService {
-  NotificationApiService({http.Client? client}) : _client = client ?? http.Client();
+  /// [client] et [timeout] sont injectables pour les tests.
+  NotificationApiService({http.Client? client, this.timeout = AppConstants.apiTimeout})
+      : _client = client ?? HttpClientFactory.create();
+
   final http.Client _client;
 
-  // Utilisation d'une route API de test pour simuler les flux de notifications
-  static const String _baseUrl = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+  /// Temps maximum d'attente de la réponse.
+  final Duration timeout;
 
+  /// Récupère la liste des notifications via une requête HTTP GET.
   Future<List<NotificationModel>> fetchNotifications() async {
-    try {
-      final response = await _client
-          .get(Uri.parse(_baseUrl), headers: {'Accept': 'application/json'})
-          .timeout(const Duration(seconds: 10));
+    // Requête avec un en-tête et un délai maximum
+    final response = await _client
+        .get(Uri.parse(AppConstants.notificationsApiUrl), headers: {'Accept': 'application/json'})
+        .timeout(timeout);
 
-      if (response.statusCode != 200) {
-        throw Exception('Erreur serveur : ${response.statusCode}');
-      }
-
-      final List<dynamic> decoded = jsonDecode(response.body) as List<dynamic>;
-      return decoded.map((item) => NotificationModel.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (e) {
-      throw Exception('Impossible de charger les notifications : $e');
+    // Vérification du code HTTP AVANT le décodage
+    if (response.statusCode != 200) {
+      throw Exception('Erreur HTTP ${response.statusCode}');
     }
+
+    // Décodage du JSON et conversion en objets NotificationModel
+    final decoded = jsonDecode(response.body) as List<dynamic>;
+    return decoded
+        .map((item) => NotificationModel.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
+  /// Ferme le client HTTP pour libérer les ressources.
   void dispose() => _client.close();
 }

@@ -1,246 +1,118 @@
 // =====================================================================
-// Écran Principal avec Navigation Bar et Tableau de bord 
+// Écran principal — Navigation entre les rubriques
 // =====================================================================
 
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../repositories/course_repository.dart';
+
+import '../repositories/auth_repository.dart';
 import '../utils/app_colors.dart';
-import 'login_screen.dart';
+import '../utils/app_constants.dart';
+import '../viewmodels/session_viewmodel.dart';
 import 'courses_screen.dart';
-import 'profile_screen.dart';
+import 'dashboard_screen.dart';
 import 'grades_screen.dart';
-import 'schedule_screen.dart';
-import 'notifications_screen.dart';
+import 'profile_screen.dart';
+
+/// Numéros des onglets (utilisés par le tableau de bord pour y accéder).
+class HomeTab {
+  HomeTab._();
+  static const int dashboard = 0;
+  static const int courses = 1;
+  static const int grades = 2;
+  static const int profile = 3;
+}
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.authRepository});
+
+  final AuthRepository authRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = HomeTab.dashboard;
 
-  final List<Widget> _screens = [
-    const HomeDashboardContent(),
-    CoursesScreen(repository: CourseRepository()),
-    const ProfileScreen(),
+  // ViewModel partagé par le tableau de bord et le profil
+  late final SessionViewModel _session =
+      SessionViewModel(widget.authRepository);
+
+  // Les pages sont créées une seule fois (gardées par l'IndexedStack)
+  late final List<Widget> _pages = [
+    DashboardScreen(session: _session, onOpenTab: _selectTab),
+    // « Voir les notes » sur un cours ouvre l'onglet Notes
+    CoursesScreen(onShowGrades: () => _selectTab(HomeTab.grades)),
+    const GradesScreen(),
+    ProfileScreen(session: _session),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        indicatorColor: AppColors.softLilac.withOpacity(0.5),
-        backgroundColor: AppColors.surface,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined, color: AppColors.darkPlum),
-            selectedIcon: Icon(Icons.home, color: AppColors.darkPlum),
-            label: 'Accueil',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.book_outlined, color: AppColors.darkPlum),
-            selectedIcon: Icon(Icons.book, color: AppColors.darkPlum),
-            label: 'Cours',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline, color: AppColors.darkPlum),
-            selectedIcon: Icon(Icons.person, color: AppColors.darkPlum),
-            label: 'Profil',
-          ),
-        ],
-      ),
-    );
-  }
-}
+  // Description des onglets : icône, icône sélectionnée, libellé
+  static const List<({IconData icon, IconData selectedIcon, String label})> _tabs = [
+    (icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Accueil'),
+    (icon: Icons.book_outlined, selectedIcon: Icons.book, label: 'Cours'),
+    (icon: Icons.assessment_outlined, selectedIcon: Icons.assessment, label: 'Notes'),
+    (icon: Icons.person_outline, selectedIcon: Icons.person, label: 'Profil'),
+  ];
 
-class HomeDashboardContent extends StatelessWidget {
-  const HomeDashboardContent({super.key});
+  void _selectTab(int index) => setState(() => _currentIndex = index);
 
   @override
   Widget build(BuildContext context) {
-    final student = AuthService.currentStudent;
+    // LayoutBuilder donne la largeur disponible pour choisir la mise en page
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWide = constraints.maxWidth >= AppConstants.wideLayoutBreakpoint;
+        final content = IndexedStack(index: _currentIndex, children: _pages);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Tableau de bord', style: TextStyle(color: AppColors.darkPlum, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.orchidPurple),
-            tooltip: 'Déconnexion',
-            onPressed: () {
-              AuthService.logout();
-              Navigator.pushReplacement(
-                context, 
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Carte de bienvenue aux tons Prune & Lilas
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.darkPlum.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppColors.orchidPurple,
-                    child: Text(
-                      student?.name.isNotEmpty == true ? student!.name[0] : 'E', 
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Bonjour, ${student?.name ?? "Étudiant"} !', 
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Filière : ${student?.major ?? ""}', 
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Espace Pédagogique', 
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
-            ),
-            const SizedBox(height: 14),
-            
-            // Grille des cartes fonctionnelles
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.3,
+        if (isWide) {
+          // --- Grand écran : menu latéral à gauche ---
+          return Scaffold(
+            body: Row(
               children: [
-                _buildCard(
-                  Icons.book_outlined, 
-                  'Mes Cours', 
-                  AppColors.surface, 
-                  AppColors.orchidPurple, 
-                  () {
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(
-                        builder: (context) => CoursesScreen(repository: CourseRepository()),
-                      ),
-                    );
-                  },
+                SafeArea(
+                  child: NavigationRail(
+                    selectedIndex: _currentIndex,
+                    onDestinationSelected: _selectTab,
+                    labelType: NavigationRailLabelType.all,
+                    backgroundColor: AppColors.surface,
+                    indicatorColor: AppColors.primaryLight.withValues(alpha: 0.5),
+                    destinations: [
+                      for (final tab in _tabs)
+                        NavigationRailDestination(
+                          icon: Icon(tab.icon, color: AppColors.textMain),
+                          selectedIcon: Icon(tab.selectedIcon, color: AppColors.textMain),
+                          label: Text(tab.label),
+                        ),
+                    ],
+                  ),
                 ),
-                _buildCard(
-                  Icons.assessment_outlined, 
-                  'Mes Notes', 
-                  AppColors.surface, 
-                  AppColors.darkPlum, 
-                  () {
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (context) => const GradesScreen()),
-                    );
-                  },
-                ),
-                _buildCard(
-                  Icons.schedule_outlined, 
-                  'Emploi du temps', 
-                  AppColors.surface, 
-                  AppColors.softLilac, 
-                  () {
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (context) => const ScheduleScreen()),
-                    );
-                  },
-                ),
-                _buildCard(
-                  Icons.notifications_outlined, 
-                  'Notifications', 
-                  AppColors.surface, 
-                  AppColors.orchidPurple, 
-                  () {
-                    Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-                    );
-                  },
-                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: content),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          );
+        }
 
-  Widget _buildCard(IconData icon, String title, Color bgColor, Color iconColor, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: bgColor, 
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.softLilac.withOpacity(0.3), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 28, color: iconColor),
-            ),
-            const Spacer(),
-            Text(
-              title, 
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.darkPlum),
-            ),
-          ],
-        ),
-      ),
+        // --- Téléphone : barre de navigation en bas ---
+        return Scaffold(
+          body: content,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: _selectTab,
+            backgroundColor: AppColors.surface,
+            indicatorColor: AppColors.primaryLight.withValues(alpha: 0.5),
+            destinations: [
+              for (final tab in _tabs)
+                NavigationDestination(
+                  icon: Icon(tab.icon, color: AppColors.textMain),
+                  selectedIcon: Icon(tab.selectedIcon, color: AppColors.textMain),
+                  label: tab.label,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,146 +1,197 @@
 // =====================================================================
-// Écran des Cours — Gestion des états via FutureBuilder
+// Écran des cours — Liste et recherche
+// =====================================================================
+// Chaque cours affiche son code, son intitulé, son enseignant et son
+// nombre de crédits, avec une action « Voir les notes » (TP3).
 // =====================================================================
 
 import 'package:flutter/material.dart';
+
 import '../models/course.dart';
 import '../repositories/course_repository.dart';
 import '../utils/app_colors.dart';
+import '../viewmodels/courses_viewmodel.dart';
+import '../viewmodels/view_status.dart';
+import '../widgets/empty_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/message_banner.dart';
+import '../widgets/responsive_body.dart';
 
 class CoursesScreen extends StatefulWidget {
-  const CoursesScreen({super.key, required this.repository});
+  /// [repository] est facultatif : il permet d'injecter de fausses
+  /// données dans les tests.
+  /// [onShowGrades] ouvre l'onglet des notes (action « Voir les notes »).
+  const CoursesScreen({super.key, this.repository, this.onShowGrades});
 
-  final CourseRepository repository;
+  final CourseRepository? repository;
+  final VoidCallback? onShowGrades;
 
   @override
   State<CoursesScreen> createState() => _CoursesScreenState();
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
-  late Future<List<Course>> _futureCourses;
+  late final CoursesViewModel _viewModel =
+      CoursesViewModel(repository: widget.repository);
 
   @override
   void initState() {
     super.initState();
-    _futureCourses = widget.repository.getCourses();
+    _viewModel.loadCourses(); // Premier chargement à l'ouverture
   }
 
-  void _retry() {
-    setState(() {
-      _futureCourses = widget.repository.getCourses();
-    });
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Mes Cours', style: TextStyle(color: AppColors.darkPlum)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.darkPlum),
+      appBar: AppBar(title: const Text('Mes cours')),
+      body: ResponsiveBody(
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) => _buildContent(),
+        ),
       ),
-      body: FutureBuilder<List<Course>>(
-        future: _futureCourses,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.orchidPurple),
-            );
-          }
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Impossible de charger les données.',
-                      style: TextStyle(color: AppColors.darkPlum, fontSize: 16, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _retry,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.orchidPurple,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
+  /// Choisit l'affichage selon l'état du ViewModel.
+  Widget _buildContent() {
+    switch (_viewModel.status) {
+      case ViewStatus.initial:
+      case ViewStatus.loading:
+        return const LoadingView(message: 'Chargement des cours...');
+      case ViewStatus.error:
+        return ErrorView(
+          message: _viewModel.errorMessage ?? 'Une erreur est survenue.',
+          onRetry: _viewModel.loadCourses,
+        );
+      case ViewStatus.empty:
+        return const EmptyView(message: 'Aucun cours disponible pour le moment.');
+      case ViewStatus.success:
+        return _buildCourseList();
+    }
+  }
+
+  Widget _buildCourseList() {
+    final courses = _viewModel.courses;
+
+    return Column(
+      children: [
+        // --- Recherche ---
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            onChanged: _viewModel.search,
+            decoration: const InputDecoration(
+              hintText: 'Cours, code ou enseignant',
+              prefixIcon: Icon(Icons.search),
+            ),
+          ),
+        ),
+
+        // --- API injoignable : les cours restent visibles ---
+        if (_viewModel.instructorsUnavailable)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const MessageBanner(
+                  type: BannerType.warning,
+                  message: 'Noms des enseignants indisponibles : vérifiez votre '
+                      'connexion internet.',
                 ),
-              ),
-            );
-          }
+                TextButton.icon(
+                  onPressed: _viewModel.loadCourses,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Réessayer'),
+                ),
+              ],
+            ),
+          ),
 
-          final courses = snapshot.data ?? [];
+        // --- Résultats ---
+        Expanded(
+          child: courses.isEmpty
+              ? EmptyView(
+                  icon: Icons.search_off,
+                  message: 'Aucun cours ne correspond à « ${_viewModel.query} ».',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) => _CourseCard(
+                    course: courses[index],
+                    onShowGrades: widget.onShowGrades,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
 
-          if (courses.isEmpty) {
-            return const Center(
+/// Carte d'un cours dans la liste.
+class _CourseCard extends StatelessWidget {
+  const _CourseCard({required this.course, this.onShowGrades});
+
+  final Course course;
+  final VoidCallback? onShowGrades;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Intitulé : 2 lignes maximum pour éviter tout débordement
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
               child: Text(
-                'Aucun cours disponible.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                course.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMain,
+                ),
               ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: courses.length,
-            itemBuilder: (context, index) {
-              final course = courses[index];
-              return Card(
-                color: AppColors.surface,
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.softLilac.withOpacity(0.5),
-                    child: const Icon(Icons.book, color: AppColors.darkPlum),
-                  ),
-                  title: Text(
-                    course.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkPlum),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      'Code : ${course.code} • ${course.instructor}',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                    ),
-                  ),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Consultation du module : ${course.title}'),
-                          backgroundColor: AppColors.darkPlum,
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.softLilac.withOpacity(0.4),
-                      foregroundColor: AppColors.darkPlum,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Détails'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${course.code} · ${course.credits} crédits',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            // Enseignant à gauche, action « Voir les notes » à droite
+            Row(
+              children: [
+                const Icon(Icons.person_outline, size: 16, color: AppColors.textMuted),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    course.instructor ?? 'Enseignant non disponible',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
                   ),
                 ),
-              );
-            },
-          );
-        },
+                TextButton(
+                  onPressed: onShowGrades,
+                  child: const Text('Voir les notes'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

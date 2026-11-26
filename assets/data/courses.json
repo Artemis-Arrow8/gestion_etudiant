@@ -1,0 +1,38 @@
+[
+  {
+    "code": "MOB301",
+    "title": "Développement mobile avancé",
+    "credits": 4,
+    "instructorId": 1
+  },
+  {
+    "code": "GEN302",
+    "title": "Génie logiciel et UML",
+    "credits": 3,
+    "instructorId": 2
+  },
+  {
+    "code": "BDD303",
+    "title": "Bases de données relationnelles",
+    "credits": 4,
+    "instructorId": 3
+  },
+  {
+    "code": "RES304",
+    "title": "Réseaux informatiques",
+    "credits": 3,
+    "instructorId": 4
+  },
+  {
+    "code": "WEB305",
+    "title": "Programmation web",
+    "credits": 3,
+    "instructorId": 5
+  },
+  {
+    "code": "ANG306",
+    "title": "Anglais technique et communication professionnelle",
+    "credits": 2,
+    "instructorId": 6
+  }
+]

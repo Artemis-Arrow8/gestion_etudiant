@@ -8,6 +8,9 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Gestion Etudiant</string>
+	<!-- Message affiché par iOS lors de la demande d'accès à la position -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Votre position est utilisée uniquement pour vérifier votre présence sur le campus.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
